@@ -1,0 +1,33 @@
+{
+  "name": "koa_tutorial",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "serve": "nodemon app.js"
+  },
+  "keywords": [
+    "koa",
+    "nodejs"
+  ],
+  "author": "tonysmark",
+  "license": "ISC",
+  "devDependencies": {
+    "@koa/cors": "^3.0.0",
+    "bcryptjs": "^2.4.3",
+    "gravatar": "^1.8.0",
+    "jsonwebtoken": "^8.5.1",
+    "koa": "^2.7.0",
+    "koa-bodyparser": "^4.2.1",
+    "koa-cors": "0.0.16",
+    "koa-passport": "^4.1.3",
+    "koa-router": "^7.4.0",
+    "mongoose": "^5.5.3",
+    "passport-jwt": "^4.0.0",
+    "validator": "^10.11.0"
+  },
+  "dependencies": {
+    "axios": "^0.18.0"
+  }
+}
