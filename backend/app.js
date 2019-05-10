@@ -32,7 +32,7 @@ router.use("/api/users", users.routes());
 // 前端访问这个地址
 // localhost:5000/api/analysis/analysis
 router.use("/api/analysis", analysis.routes());
-//配置路由
+// 配置路由
 app.use(router.routes()).use(router.allowedMethods());
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`server started on ${port}`));
