@@ -1,5 +1,5 @@
 <template>
-  <div class="login">
+  <div>
     <div class="header" id="head">
       <div class="title">
         <p>检测系统</p>
@@ -7,15 +7,20 @@
     </div>
 
     <div class="form" style="position:relative">
-      <!--登录表单-->
-      <div class="form_login">
+      <div class="form_register" style="position:absolute">
         <form action="#" @submit.prevent>
-          <h1>登录</h1>
+          <h1>注册</h1>
           <div class="form_item">
-            <label for="user_email">邮箱：</label>
-            <input v-model="email" type="text" name="user_email" id="user_email" placeholder="请输入正确格式的电子邮件 XXX@XXX">
+            <label for="user_name">用户名：</label>
+            <input
+              v-model="username"
+              type="text"
+              name="user_name"
+              id="user_name"
+              placeholder="请输入用户名"
+              required
+            >
           </div>
-    
           <div class="form_item">
             <label for="user_pwd">密码：</label>
             <input
@@ -23,18 +28,43 @@
               type="password"
               name="user_pwd"
               id="user_pwd"
-              placeholder="请输入密码名"
+              placeholder="请输入密码"
+              required
             >
           </div>
-          
+          <!-- <div class="form_item">
+					<label for="password2">确认密码：</label> <input v-model="password2" type="password"
+				 placeholder="请确认密码" required>
+          </div>-->
           <div class="form_item">
-            <input type="submit" @click="onLogin" value="登录">
+            <label for="user_email">电子邮箱：</label>
+            <input
+              v-model="email"
+              type="text"
+              name="user_email"
+              id="user_email"
+              placeholder="请输入正确格式的电子邮件 XXX@XXX"
+              required
+            >
+          </div>
+          <div class="form_item">
+            <label for="tel">电话：</label>
+            <input
+              v-model="phone"
+              type="user_tel"
+              name="user_tel"
+              id="user_tel"
+              placeholder="请输入手机号码"
+            >
+          </div>
+          <div class="form_item">
+            <input type="submit" @click="onRegister" value="注册">
           </div>
         </form>
         <div class="info">
-          没有账号？点击
-          <span class="switch register_Btn">
-            <router-link to="/">注册账号</router-link>
+          已有账号？点击
+          <span class="switch login_Btn">
+            <router-link to="/login">登录</router-link>
           </span>
         </div>
       </div>
@@ -54,51 +84,58 @@
 </template>
 
 <script>
-// @ is an alias to /src
 import axios from "axios";
-import { mapActions } from "vuex";
 export default {
-  name: "login",
   data() {
     return {
-      //username: "",
+      username: "",
       password: "",
-      email: ""
+      email: "",
+      phone: ""
     };
   },
   methods: {
-    ...mapActions(['updateUser']),
-    async onLogin() {
+    async onRegister() {
       const data = {
-       // name: this.username,
+        name: this.username,
         password: this.password,
-        email: this.email
+        email: this.email,
+        phone: this.phone
       };
+      console.log(data);
       const response = await axios({
         method: "post",
-        url: "http://localhost:5000/api/users/login",
-        data
+        url: "http://localhost:5000/api/users/register", // 像后端 发送 POST 请求
+        data // post 携带数据
       }).catch(err => {
-        if (err.response.status == 400) alert("密码错误");
-        else if (err.response.status == 404) alert("用户不存在");
-        else if (err.response.status == 500) {
+        if (err.response.status == 500) {
+          alert("邮箱已经存在");
+        } else if (err.response.status == 400) {
           if (err.response.data.email) alert(err.response.data.email);
-          //else if (err.response.data.name) alert(err.response.data.name);
+          else if (err.response.data.name) alert(err.response.data.name);
           else alert(err.response.data.password);
         }
       });
-      if (response.status == 200) {
-        alert("登陆成功");
-        localStorage.setItem("login", true);
-        const token = response.data.token;
-        this.updateUser(token);
-        this.$router.replace("/product");
+      if (
+        data.name &&
+        data.password &&
+        data.email &&
+        data.phone &&
+        response.status == 200
+      ) {
+        alert("注册成功");
+        this.$router.replace("/login");
+        localStorage.setItem("login", false);
+      } else {
+        // 没填完
+        alert("请完善信息");
       }
     }
   }
 };
 </script>
-<style>
+
+<style scoped>
 html {
   height: 100%;
 }
@@ -119,6 +156,7 @@ body {
   height: 80px;
   width: 300px;
   margin-top: -20px;
+  position: absolute;
   left: 450px;
 }
 
@@ -129,6 +167,7 @@ body {
   left: 350px;
 }
 
+.form_register,
 .form_login {
   width: 500px;
   background-color: rgba(0, 188, 212, 0.3);
@@ -136,6 +175,10 @@ body {
   box-shadow: 0 0 3px #ccc;
   overflow: hidden;
   transition: height 1s;
+}
+
+.form_register {
+  height: 600px;
 }
 
 .form form {
@@ -222,6 +265,7 @@ h1 {
   font-family: "楷体";
   color: #000000;
   position: absolute;
+
   left: 590px;
   transform: translate(-50%, -50%); /* 使用css3的transform来实现 */
   text-align: center;
@@ -236,4 +280,3 @@ h1 {
   width: 100%;
 }
 </style>
-
