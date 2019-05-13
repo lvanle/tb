@@ -29,8 +29,24 @@
           <div class="link">
             <form @submit.prevent>
               <div class="input-field row">
-                <input id="goods" type="text" v-model="link" class="col s10">
+                <input id="goods" type="text" v-model="link" class="col s8">
                 <label for="goods">请输入所要查询的商品链接</label>
+                <div class="col s2">
+                  <select v-model="page">
+                    <option value="0">第1页</option>
+                    <option value="1">第2页</option>
+                    <option value="2">第3页</option>
+                    <option value="3">第4页</option>
+                    <option value="4">第5页</option>
+                    <option value="5">第6页</option>
+                    <option value="6">第7页</option>
+                    <option value="7">第8页</option>
+                    <option value="8">第9页</option>
+                    <option value="9">第10页</option>
+                    <option value="10">第11页</option>
+                  </select>
+                  <label>选择查询页数</label>
+                </div>
                 <div class="btn s2 col waves-effect waves-light blue" @click="onSearch">查询</div>
               </div>
             </form>
@@ -84,7 +100,8 @@ export default {
       token: this.$store.state.token,
       userData: "", // 后但返回 token 解析后数据
       link: "",
-      result: ""
+      result: "",
+      page: ""
     };
   },
   mounted() {
@@ -103,11 +120,11 @@ export default {
           "Access-Control-Allow-Origin": "*"
         },
         data: {
-          dogURL: this.link
+          dogURL: this.link,
+          page: this.page
         }
       }).catch(e => console.log(e));
-      this.result = response.data; // 后端向前端返回ajax数据
-      console.log(response);
+      this.result = response.data;
     }
   },
   async created() {
@@ -129,8 +146,8 @@ html {
 }
 
 .product {
+  min-height: 100vh;
   background-image: url("../assets/pic/2.jpg");
-  // background-size: cover;
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
