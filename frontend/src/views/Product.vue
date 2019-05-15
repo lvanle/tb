@@ -63,18 +63,18 @@
               <div class="title">显示褒贬词个数：</div>
               <div class="col s6">
                 <div class="positive">
-                  <p style="font-size:20px;margin-bottom:5px;">褒义词</p>
+                  <p style="font-size:20px;margin-bottom:5px;">褒义词：{{result.result._posilength}}个</p>
                   <div class="divider"></div>
-                  <ul v-for="(p_word,index) in result.result.positiveRes" :key="index">
+                  <ul v-for="(p_word,index) in result.result.positiveData" :key="index">
                     <li>{{p_word.word}} {{p_word.weight}}</li>
                   </ul>
                 </div>
               </div>
               <div class="col s6">
                 <div class="negative">
-                  <p style="font-size:20px;margin-bottom:5px;">贬义词</p>
+                  <p style="font-size:20px;margin-bottom:5px;">贬义词：{{result.result._negalength}}个</p>
                   <div class="divider"></div>
-                  <ul v-for="(n_word,index) in result.result.negativeRes" :key="index">
+                  <ul v-for="(n_word,index) in result.result.negativeData" :key="index">
                     <li>{{n_word.word}} {{n_word.weight}}</li>
                   </ul>
                 </div>

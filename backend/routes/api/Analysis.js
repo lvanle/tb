@@ -76,24 +76,47 @@ router.post("/analysis", async ctx => {
         let filterStep1 = sentence.replace(/[\ |\~|\，|\。|\（|\）|\`|\!+|\！+|\；|\％|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\：|\"|\'|\,|\<|\.|\>|\/|\?+|\d|(A-Z)|(a-z)]|！\\n|\～+/g, "");
         comments.push(filterStep1);
       });
-      let positiveRes;
+      //
+      // ─── POSITIVE ────────────────────────────────────────────────────
+      //
+      let positiveList,
+        positiveRes = [];
       await comments.forEach(e => {
         let result = jieba.extract(e, 1000); // 从文本中抽取
         let tagList = positiveDict; // 自定义词库
-        positiveRes = result.filter(item => tagList.indexOf(item.word) >= 0);
+        positiveList = result.filter(item => tagList.indexOf(item.word) >= 0);
+        positiveList.forEach(e => positiveRes.push(e)); // 二维数组拍平
       });
-      console.log(`褒义词个数：${positiveRes.length}`);
-      let negativeRes;
+      let _objPosi = {};
+      let positiveData = positiveRes.reduce((prev, curr) => {
+        _objPosi[curr.word] ? true : (_objPosi[curr.word] = true && prev.push(curr));
+        return prev;
+      }, []);
+      console.log(positiveData);
+      console.log(`褒义词个数：${positiveData.length}`);
+      //
+      // ─── NEGATIVE ────────────────────────────────────────────────────────
+      //
+      let negativeList,
+        negativeRes = [];
       await comments.forEach(e => {
         let result = jieba.extract(e, 1000);
         let tagList = negativeDict;
-        negativeRes = result.filter(item => tagList.indexOf(item.word) >= 0);
+        negativeList = result.filter(item => tagList.indexOf(item.word) >= 0);
+        negativeList.forEach(e => negativeRes.push(e)); // 二维数组拍平
       });
-      console.log(`贬义词个数：${negativeRes.length}`);
+      let _objNega = {};
+      let negativeData = negativeRes.reduce((prev, curr) => {
+        _objNega[curr.word] ? true : (_objNega[curr.word] = true && prev.push(curr));
+        return prev;
+      }, []);
+      console.log(`贬义词个数：${negativeData.length}`);
       return {
         comments,
-        positiveRes,
-        negativeRes
+        positiveData,
+        _posilength: positiveData.length,
+        negativeData,
+        _negalength: negativeData.length
       };
     }
     let result = await filteData(commentsData);
