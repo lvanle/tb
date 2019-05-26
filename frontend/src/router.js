@@ -2,27 +2,26 @@ import Vue from "vue";
 import Router from "vue-router";
 Vue.use(Router);
 
-const router =  new Router({  // 编写路由守护
+const router = new Router({
+  // 编写路由守护
   mode: "history",
   base: process.env.BASE_URL,
   routes: [
     {
       path: "/",
       name: "register",
-      component: ()=>import('./views/Register.vue')
+      component: () => import("./views/Register.vue")
     },
     {
       path: "/login",
       name: "login",
-      component: () =>
-        import("./views/Login.vue")
+      component: () => import("./views/Login.vue")
     },
     {
       path: "/product",
       name: "product",
-      component: () =>
-        import("./views/Product.vue")
-    },
+      component: () => import("./views/Product.vue")
+    }
   ]
 });
 // 路由守护
@@ -35,4 +34,4 @@ router.beforeEach((to, from, next) => {
   }
 });
 
-export default router
+export default router;

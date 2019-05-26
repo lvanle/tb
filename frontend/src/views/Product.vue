@@ -1,87 +1,114 @@
 <template>
   <div class="product">
-    <div id="main" class="container">
-      <div id="user_info" class="card horizontal">
-        <div class="card-image">
-          <img :src="userData.avatar" alt>
-        </div>
-        <div class="card-stacked">
-          <div class="card-content">
-            <h4>{{userData.name}} 欢迎你</h4>
-            <h5>邮箱：{{userData.email}}</h5>
-            <h5>电话：{{userData.phone}}</h5>
-          </div>
-          <div class="card-action">
-            <input
-              type=" submit"
-              @click="onLogOut"
-              class="btn blue waves-effect waves-light"
-              value="退出登录"
-            >
-          </div>
-        </div>
+    <nav class="blue">
+      <div class="nav-wrapper container">
+        <a href="#" class="brand-logo">京东评论分析</a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+          <li>
+            <span class="user">
+              <img :src="userData.avatar" alt>
+            </span>
+          </li>
+          <li>
+            <span>{{userData.name}}</span>
+          </li>
+        </ul>
       </div>
-      <div id="test" class="card">
+    </nav>
+    <div class="container">
+      <div class="card downloader">
         <div class="card-content">
-          <!-- <div class="tip">
-            <h3>请提交所要查询的商品的全部链接！非全部链接不能保证检测的准确性。。。。。。</h3>
-          </div>-->
           <div class="link">
             <form @submit.prevent>
               <div class="input-field row">
-                <input id="goods" type="text" v-model="link" class="col s8">
+                <input id="goods" type="text" v-model="link" class="col s10">
                 <label for="goods">请输入所要查询的商品链接</label>
-                <div class="col s2">
-                  <select v-model="page">
-                    <option value="0">第1页</option>
-                    <option value="1">第2页</option>
-                    <option value="2">第3页</option>
-                    <option value="3">第4页</option>
-                    <option value="4">第5页</option>
-                    <option value="5">第6页</option>
-                    <option value="6">第7页</option>
-                    <option value="7">第8页</option>
-                    <option value="8">第9页</option>
-                    <option value="9">第10页</option>
-                    <option value="10">第11页</option>
-                  </select>
-                  <label>选择查询页数</label>
+                <div class="btn s2 col waves-effect waves-light blue onsearch" @click="onDownload">
+                  <i class="material-icons">cloud_download</i>
+                  下载数据
                 </div>
-                <div class="btn s2 col waves-effect waves-light blue" @click="onSearch">查询</div>
               </div>
             </form>
+            <div class="downloadIndecator" v-if="indecator">
+              预计时间：{{((2000*result.defData.maxPage)/60000).toFixed(2)}} 分钟
+              <div class="progress">
+                <div class="indeterminate"></div>
+              </div>
+            </div>
           </div>
-          <div v-if="result">
-            <div class="judge">
-              <div class="title">显示查询出来的评价</div>
-              <div class="comments" v-for="(comment,index) in result.result.comments" :key="index">
-                <div class="comment">{{comment}}</div>
-                <div class="divider"></div>
-              </div>
+        </div>
+      </div>
+      <div class="analysis card">
+        <div class="card-content comments-content">
+          <div class="row">
+            <div class="col s4">
+              <label for="startDay">选择起始日期：</label>
+              <input id="startDay" type="text" v-model="startDate" placeholder="格式：2019-04-01">
             </div>
-            <div class="analyse row">
-              <div class="title">显示褒贬词个数：</div>
-              <div class="col s6">
-                <div class="positive">
-                  <p style="font-size:20px;margin-bottom:5px;">褒义词：{{result.result._posilength}}个</p>
-                  <div class="divider"></div>
-                  <ul v-for="(p_word,index) in result.result.positiveData" :key="index">
-                    <li>{{p_word.word}} {{p_word.weight}}</li>
-                  </ul>
+            <div class="col s4">
+              <label for="endDay">选择结束日期：</label>
+              <input id="endDay" type="text" v-model="endDate" placeholder="格式：2019-05-10">
+            </div>
+            <div class="col s3">
+              <label for="someDay">选择其中的某一天：</label>
+              <input id="someDay" type="text" v-model="someDate" placeholder="格式：2019-05-01">
+            </div>
+            <form @submit.prevent>
+              <div class="btn blue col s1" @click="onSearch">查询</div>
+            </form>
+          </div>
+          <div class="infos">
+            <div class="simple-info">
+              <span class="info-data">{{commentsData.length}}</span>
+              <span class="info-title">总计评价人数</span>
+            </div>
+            <div class="simple-info">
+              <span class="info-data">{{commentsData.rateCals}}%</span>
+              <span class="info-title">{{someDate}}</span>
+              <span class="info-title">占时间总体评价</span>
+            </div>
+            <div class="simple-info">
+              <span class="info-data">{{isSuspect==true?"是":'否'}}</span>
+              <span class="info-title">是否存在刷单嫌疑</span>
+            </div>
+            <div class="simple-info">
+              <span class="info-data">
+                {{commentsData.someDay}}
+              </span>
+              <span class="info-title">当天总体好评度</span>
+            </div>
+          </div>
+          <div class="comments row">
+            <div
+              class="col s12 comments-data"
+              v-for="item in commentsData.res"
+              :key="item.rawData.id"
+            >
+              <div class="user">
+                <div class="username left">{{item.rawData.nickname}}</div>
+              </div>
+              <div class="comments-content">
+                {{item.rawData.comments}}
+                <div class="rate-data">
+                  <div class="posi">
+                    褒义词:{{item.posiLength}}
+                    <ul class="posi-content">
+                      <li v-for="posi in item.positiveList" :key="posi">{{posi.word}}</li>
+                    </ul>
+                  </div>
+                  <div class="nega">
+                    贬义词:{{item.negaLength}}
+                    <ul class="nega-content">
+                      <li v-for="nega in item.negativeList" :key="nega">{{nega.word}}</li>
+                    </ul>
+                  </div>
+                  <div class="rates">
+                    评价
+                    <span>{{((item.posiLength/(item.negaLength+item.posiLength))*100).toFixed(1)}}%</span>
+                  </div>
                 </div>
               </div>
-              <div class="col s6">
-                <div class="negative">
-                  <p style="font-size:20px;margin-bottom:5px;">贬义词：{{result.result._negalength}}个</p>
-                  <div class="divider"></div>
-                  <ul v-for="(n_word,index) in result.result.negativeData" :key="index">
-                    <li>{{n_word.word}} {{n_word.weight}}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div class="result">
-              <!-- <p>显示最终结果</p> -->
+              <div class="timepick right">{{item.rawData.referenceTime}}</div>
             </div>
           </div>
         </div>
@@ -92,7 +119,6 @@
 
 <script>
 import axios from "axios";
-import "../../node_modules/materialize-css/dist/css/materialize.css";
 import { mapGetters, mapActions } from "vuex";
 export default {
   data() {
@@ -101,30 +127,58 @@ export default {
       userData: "", // 后但返回 token 解析后数据
       link: "",
       result: "",
-      page: ""
+      indecator: false,
+      startDate: "",
+      endDate: "",
+      commentsData: "",
+      someDate: "",
+      isSuspect: ""
     };
   },
   mounted() {
     M.AutoInit();
+  },
+  watch: {
+    commentsData(arg) {
+      let rateCals = arg.rateCals;
+      if (rateCals >= 2) {
+        this.isSuspect = true;
+      } else {
+        this.isSuspect = false;
+      }
+    }
   },
   methods: {
     onLogOut() {
       localStorage.clear();
       this.$router.replace("/login");
     },
-    async onSearch() {
+    async onDownload() {
+      this.indecator = true;
       const response = await axios({
         method: "post",
-        url: "http://localhost:5000/api/analysis/analysis",
-        headers: {
-          "Access-Control-Allow-Origin": "*"
-        },
+        url: "http://localhost:5000/api/analysis/scrapy",
         data: {
-          dogURL: this.link,
-          page: this.page
+          dogURL: this.link
         }
       }).catch(e => console.log(e));
       this.result = response.data;
+      let maxPage = this.result.defData.maxPage;
+      setTimeout(() => {
+        this.indecator = false;
+      }, maxPage * 1500);
+    },
+    async onSearch() {
+      const response = await axios({
+        method: "post",
+        data: {
+          startDate: this.startDate,
+          endDate: this.endDate,
+          someDate: this.someDate
+        },
+        url: "http://localhost:5000/api/analysis/analysis"
+      }).catch(e => console.log(e));
+      this.commentsData = response.data;
     }
   },
   async created() {
@@ -141,40 +195,107 @@ export default {
 </script>
 
 <style lang='less' scoped>
-html {
-  height: 100%;
-}
+@import url("../../node_modules/materialize-css/dist/css/materialize.min.css");
 
 .product {
   min-height: 100vh;
   background-image: url("../assets/pic/2.jpg");
   background-attachment: fixed;
   background-repeat: no-repeat;
-}
-#main {
-  padding: 3rem 0;
-}
-#user_info img {
-  width: 80%;
-}
-.comment {
-  margin-bottom: 20px;
-  &::before {
-    content: "“";
-    font-size: 35px;
-    line-height: 1;
-    color: #ccc;
-    margin-right: 10px;
+  background-size: cover;
+  padding-bottom: 5rem;
+  .user img {
+    margin-top: 6px;
+    margin-right: 20px;
+    border-radius: 50%;
+    width: 50px;
   }
-}
-.title {
-  font-size: 30px;
-  position: relative;
-  color: #000;
-  margin: 20px 0;
-}
-.positive,
-.negative {
-  text-align: center;
+  .onsearch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .downloader {
+    margin-top: 3rem;
+  }
+  .infos {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 2rem;
+    .simple-info {
+      text-align: center;
+      display: inherit;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      width: 180px;
+      height: 180px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      .info-title {
+        color: rgba(0, 0, 0, 0.5);
+      }
+      .info-data {
+        color: #000;
+        font-size: 30px;
+      }
+    }
+  }
+  .comments {
+    max-height: 1000px;
+    overflow-y: auto;
+    .comments-data {
+      border-top: 1px #ccc solid;
+    }
+    .timepick {
+      color: rgba(0, 0, 0, 0.6);
+    }
+    .comments-content {
+      transition: 300 ease-in-out;
+      position: relative;
+      padding: 0 10px 0 0;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      overflow: hidden;
+      &::before {
+        content: '"';
+        font-size: 35px;
+        margin-top: -40px;
+        padding: 0 5px 0 0;
+      }
+      &:hover > .rate-data {
+        transition: 300;
+        bottom: 0;
+        top: 10px;
+      }
+    }
+    .rate-data {
+      border-radius: 10px;
+      transition: 200 ease-in-out;
+      position: absolute;
+      bottom: 200px;
+      left: 0;
+      width: 100%;
+      height: 190px;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      div {
+        color: #fff;
+      }
+      .nega-content,
+      .posi-content {
+        display: flex;
+        flex-direction: row;
+        li {
+          padding-right: 8px;
+        }
+      }
+    }
+  }
 }
 </style>

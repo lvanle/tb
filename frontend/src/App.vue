@@ -14,5 +14,6 @@ body {
   background-image: url("./assets/pic/2.jpg");
   background-attachment: fixed;
   background-repeat: no-repeat;
+  background-size: cover;
 }
 </style>
