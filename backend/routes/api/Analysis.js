@@ -2,6 +2,9 @@ const positiveDict = require("../../models/positive_dic");
 const negativeDict = require("../../models/negative_dic");
 const Router = require("koa-router");
 const router = new Router();
+const mongoose = require("mongoose");
+const productsDB = require("../../config/keys").mongoProductsUrl;
+const Products = require("../../models/Products");
 const jieba = require("nodejieba");
 const request = require("request");
 const iconv = require("iconv-lite");
@@ -9,20 +12,16 @@ const iconv = require("iconv-lite");
  *  @Router  POST /api/analysis/analysis
  *
  */
-router.post("/analysis", async ctx => {
+router.post("/scrapy", async ctx => {
   // 前端发送 post 请求 发送数据是京东URL，这里接收数据
   const dogURL = await ctx.request.body.dogURL;
   const productId = await dogURL.match(/\d+/g)[0];
-  const pagenum = await ctx.request.body.page;
-  const page = parseInt(pagenum);
   if (dogURL == "") {
     ctx.status = 500;
-    ctx.body = { msg: "不能为空" };
+    ctx.body = { msg: "链接不可为空" };
   } else {
-    // 爬虫获取京东URL的productId后传给爬虫做网络请求；
-    // 网络请求结束后数据传给结巴分词，对评论进行 过滤、分词、判断情感值
-    async function reAction() {
-      // let productId =await productId;
+    ctx.status = 200;
+    async function reAction(pageNum, productId) {
       return new Promise((res, rej) => {
         request(
           {
@@ -32,7 +31,7 @@ router.post("/analysis", async ctx => {
               productId,
               score: 0,
               sortType: 5,
-              page,
+              page: pageNum,
               pageSize: 10,
               isShadowSku: 0,
               fold: 1
@@ -61,50 +60,110 @@ router.post("/analysis", async ctx => {
         );
       });
     }
-    const loop = async () => {
-      let str = await reAction();
+    async function formater(pageNum, productId) {
+      let str = await reAction(pageNum, productId);
       let data = JSON.parse(str);
-      return data.comments;
-    };
-    let commentsData = await loop();
-    async function filteData(productData) {
-      // console.log(productData);
-      // 传进来取名叫 productData
-      let comments = [];
-      await productData.forEach(e => {
-        sentence = e.content;
-        let filterStep1 = sentence.replace(/[\ |\~|\，|\。|\（|\）|\`|\!+|\！+|\；|\％|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\：|\"|\'|\,|\<|\.|\>|\/|\?+|\d|(A-Z)|(a-z)]|！\\n|\～+/g, "");
-        comments.push(filterStep1);
-      });
-      let positiveRes;
-      await comments.forEach(e => {
-        let result = jieba.extract(e, 1000); // 从文本中抽取
-        let tagList = positiveDict; // 自定义词库
-        positiveRes = result.filter(item => tagList.indexOf(item.word) >= 0);
-      });
-      console.log(`褒义词个数：${positiveRes.length}`);
-      let negativeRes;
-      await comments.forEach(e => {
-        let result = jieba.extract(e, 1000);
-        let tagList = negativeDict;
-        negativeRes = result.filter(item => tagList.indexOf(item.word) >= 0);
-      });
-      console.log(`贬义词个数：${negativeRes.length}`);
+      return data;
+    }
+    async function main(productId) {
+      mongoose.createConnection(productsDB, { useNewUrlParser: true }).dropCollection;
+      let defaultData = await formater(0, productId);
+      let maxPage = defaultData.maxPage;
+      let i = 0;
+      let Timer = setInterval(async () => {
+        const data = await formater(i, productId);
+        data.comments.forEach(e => {
+          let reg = /\d+-\d+-\d+/g;
+          const product = new Products({
+            id: e.id,
+            nickname: e.nickname,
+            userImageUrl: e.userImageUrl,
+            comments: e.content,
+            rate: e.score,
+            referenceTime: e.referenceTime,
+            timePick: e.referenceTime.match(reg)[0]
+          });
+          product.save().catch(e => console.error(e));
+        });
+        console.log("存储页面：" + i);
+        i++;
+        if (i > maxPage) {
+          clearInterval(Timer);
+          console.log("Done");
+        }
+      }, 1500);
       return {
-        comments,
-        positiveRes,
-        negativeRes
+        maxPage,
+        poorCountStr: defaultData.productCommentSummary.poorCountStr,
+        generalCountStr: defaultData.productCommentSummary.generalCountStr,
+        goodCountStr: defaultData.productCommentSummary.goodCountStr
       };
     }
-    let result = await filteData(commentsData);
-    ctx.status = 200;
+    let defData = await main(productId);
     ctx.body = {
-      // 响应后传回参数
-      // data,
-      productId,
-      dogURL,
-      result
+      defData
     };
   }
 });
+router.post("/analysis", async ctx => {
+  // 把前端选择的时间传过来，这里接受时间
+  // 页面上两个picker
+  let startDate = ctx.request.body.startDate;
+  let endDate = ctx.request.body.endDate;
+  let someDate = ctx.request.body.someDate;
+  ctx.status = 200;
+  let data = await Products.find({ timePick: { $lte: endDate, $gte: startDate } });
+  let someDateData = await Products.find({ timePick: someDate });
+  let calculator = async () => {
+    // someDateData.length  当天评论文人数
+    return someDateData.length / data.length;
+  };
+  let rateCals = await calculator();
+  if (data.length == 0) {
+    ctx.body = { msg: "这一天没有购买信息" };
+  } else {
+    async function filterDataMain(data) {
+      let comments = await data.map(e => {
+        sentence = e.comments;
+        let rawSentence = sentence.replace(/[\ |\~|\，|\。|\（|\）|\`|\!+|\！+|\；|\％|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\：|\"|\'|\,|\<|\.|\>|\/|\?+|\d|(A-Z)|(a-z)]|！\\n|\～+/g, "");
+        let jiebaRes = jieba.extract(rawSentence, 2000);
+        positiveList = jiebaRes.filter(item => positiveDict.indexOf(item.word) >= 0);
+        negativeList = jiebaRes.filter(item => negativeDict.indexOf(item.word) >= 0);
+        return {
+          rawData: e,
+          positiveList,
+          negativeList,
+          posiLength: positiveList.length,
+          negaLength: negativeList.length
+        };
+      });
+      return comments;
+    }
+    let res = await filterDataMain(data);
+    async function filterDataSec(data) {
+      let comments = await data.map(e => {
+        sentence = e.comments;
+        let rawSentence = sentence.replace(/[\ |\~|\，|\。|\（|\）|\`|\!+|\！+|\；|\％|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\:|\：|\"|\'|\,|\<|\.|\>|\/|\?+|\d|(A-Z)|(a-z)]|！\\n|\～+/g, "");
+        let jiebaRes = jieba.extract(rawSentence, 2000);
+        posiLength = jiebaRes.filter(item => positiveDict.indexOf(item.word) >= 0).length;
+        negaLength = jiebaRes.filter(item => negativeDict.indexOf(item.word) >= 0).length;
+        return { posiLength, negaLength };
+      });
+      let posiArr = comments.map(e => e.posiLength);
+      let posiRate = posiArr.reduce((acc, acu) => acc + acu, 0);
+      let negaArr = comments.map(e => e.posiLength);
+      let negaRate = negaArr.reduce((acc, acu) => acc + acu, 0);
+      let goodRatio = posiRate / posiRate + negaRate;
+      return goodRatio;
+    }
+    let someDay = await filterDataSec(someDateData);
+    ctx.body = {
+      length: data.length, // 这些天的购买人数
+      rateCals: (rateCals * 100).toFixed(2),
+      res,
+      someDay: `${someDay}%`
+    };
+  }
+});
+
 module.exports = router;

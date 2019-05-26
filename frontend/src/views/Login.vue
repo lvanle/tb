@@ -67,7 +67,6 @@ export default {
   name: "login",
   data() {
     return {
-      //username: "",
       password: "",
       email: ""
     };
@@ -76,7 +75,6 @@ export default {
     ...mapActions(["updateUser"]),
     async onLogin() {
       const data = {
-        // name: this.username,
         password: this.password,
         email: this.email
       };

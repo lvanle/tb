@@ -5,10 +5,11 @@ const bodyParser = require("koa-bodyparser");
 const passport = require("koa-passport");
 const cors = require("@koa/cors");
 //设置数据库
-const db = require("./config/keys").mongoUrl;
+const userDB = require("./config/keys").mongoUserUrl;
+const productsDB = require("./config/keys").mongoProductsUrl;
 // 引入user.js
 const users = require("./routes/api/users");
-const analysis = require('./routes/api/Analysis');
+const analysis = require("./routes/api/Analysis");
 // 实例化对象
 const app = new koa();
 const router = new Router();
@@ -17,11 +18,16 @@ app.use(bodyParser());
 router.get("/", async ctx => {
   ctx.body = { msg: "hello koa app" };
 });
-// 链接mongodb
+// 链接mongouserDB
 mongoose
-  .connect(db, { useNewUrlParser: true })
-  .then(() => console.log("monogodb connected....."))
+  .connect(userDB, { useNewUrlParser: true })
+  .then(() => console.log("用户数据库连接完成....."))
   .catch(e => console.log(e));
+mongoose
+  .connect(productsDB, { useNewUrlParser: true })
+  .then(() => console.log("产品数据库连接完成......"))
+  .catch(e => console.log(e));
+//
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors());
